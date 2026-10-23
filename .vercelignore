@@ -1,0 +1,24 @@
+# Exclude heavy/unnecessary files from Vercel bundle
+
+# Virtual environment
+myenv/
+
+# Jupyter notebooks (not needed at runtime)
+*.ipynb
+
+# Raw dataset
+datasets/
+
+# Extra model files (keep only model.pkl used by app.py)
+heart_attack_model.pkl
+scaler.pkl
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Git
+.git/
+.gitignore
