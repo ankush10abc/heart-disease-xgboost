@@ -75,141 +75,97 @@ FIELD_DEFS = [
 def home():
     field_names_js = str([f[0] for f in FIELD_DEFS])
     fields_html = "".join(
-        f'<label>{name}<input name="{name}" type="number" '
-        f'min="{mn}" max="{mx}" step="{step}" value="{val}" required></label>'
+        '<label>' + name + '<input name="' + name + '" type="number" '
+        'min="' + str(mn) + '" max="' + str(mx) + '" step="' + step + '" value="' + str(val) + '" required></label>'
         for name, mn, mx, val, step in FIELD_DEFS
     )
-    return f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta name="viewport" content="width=device-width, initial-scale=1">
-      <title>Heart Health ML Demo</title>
-      <style>
-        body {{
-          font-family: Arial, sans-serif;
-          background: #f3f6fb;
-          margin: 0;
-          padding: 24px;
-          color: #172033;
-        }}
-        main {{
-          max-width: 850px;
-          margin: auto;
-          background: white;
-          padding: 28px;
-          border-radius: 16px;
-          box-shadow: 0 5px 24px #17203312;
-        }}
-        h1 {{ color: #174ea6; }}
-        .grid {{
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-          gap: 16px;
-        }}
-        label {{ font-size: 14px; font-weight: bold; display: block; }}
-        input {{
-          display: block;
-          box-sizing: border-box;
-          width: 100%;
-          margin-top: 7px;
-          padding: 11px;
-          border: 1px solid #cbd5e1;
-          border-radius: 8px;
-          background: white;
-        }}
-        button {{
-          margin-top: 22px;
-          width: 100%;
-          padding: 14px;
-          border: 0;
-          border-radius: 8px;
-          background: #174ea6;
-          color: white;
-          font-size: 16px;
-          cursor: pointer;
-        }}
-        #result {{
-          margin-top: 20px;
-          padding: 16px;
-          border-radius: 8px;
-          background: #eef4ff;
-          white-space: pre-line;
-        }}
-        .note {{ color: #596579; font-size: 13px; }}
-      </style>
-    </head>
-    <body>
-    <main>
-      <h1>Heart Health Prediction</h1>
-      <p>Enter the coded features used by the training dataset.</p>
 
-      <form id="patientForm">
-        <div class="grid">{fields_html}</div>
-        <button type="submit">Run Prediction</button>
-      </form>
+    html = """
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Heart Health ML Demo</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f3f6fb; margin: 0; padding: 24px; color: #172033; }
+    main { max-width: 850px; margin: auto; background: white; padding: 28px; border-radius: 16px; box-shadow: 0 5px 24px #17203312; }
+    h1 { color: #174ea6; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; }
+    label { font-size: 14px; font-weight: bold; display: block; }
+    input { display: block; box-sizing: border-box; width: 100%; margin-top: 7px; padding: 11px; border: 1px solid #cbd5e1; border-radius: 8px; background: white; }
+    button { margin-top: 22px; width: 100%; padding: 14px; border: 0; border-radius: 8px; background: #174ea6; color: white; font-size: 16px; cursor: pointer; }
+    #result { margin-top: 20px; padding: 16px; border-radius: 8px; background: #eef4ff; white-space: pre-line; display: none; }
+    .note { color: #596579; font-size: 13px; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Heart Health Prediction</h1>
+  <p>Enter the coded features used by the training dataset.</p>
+  <form id="patientForm">
+    <div class="grid">FIELDS_PLACEHOLDER</div>
+    <button type="submit">Run Prediction</button>
+  </form>
+  <div id="result"></div>
+  <p class="note">Educational ML demo only. This tool is not a medical diagnosis.</p>
+</main>
+<script>
+  var fieldNames = FIELD_NAMES_PLACEHOLDER;
 
-      <div id="result" hidden></div>
-      <p class="note">Educational ML demo only. This tool is not a medical diagnosis.</p>
-    </main>
+  document.getElementById('patientForm').addEventListener('submit', function(event) {
+    event.preventDefault();
 
-    <script>
-      const fieldNames = {field_names_js};
+    var result = document.getElementById('result');
+    result.style.display = 'block';
+    result.style.color = '#172033';
+    result.textContent = 'Predicting...';
 
-      document.getElementById("patientForm")
-        .addEventListener("submit", function(event) {{
-          event.preventDefault();
+    var data = {};
+    for (var i = 0; i < fieldNames.length; i++) {
+      var name = fieldNames[i];
+      data[name] = Number(document.querySelector('[name="' + name + '"]').value);
+    }
 
-          const result = document.getElementById("result");
-          result.removeAttribute("hidden");
-          result.style.color = "#172033";
-          result.textContent = "Predicting...";
-
-          const data = {{}};
-          for (let i = 0; i < fieldNames.length; i++) {{
-            const name = fieldNames[i];
-            data[name] = Number(document.querySelector('[name="' + name + '"]').value);
-          }}
-
-          fetch("/predict", {{
-            method: "POST",
-            headers: {{"Content-Type": "application/json"}},
-            body: JSON.stringify(data)
-          }})
-          .then(function(response) {{
-            return response.text().then(function(text) {{
-              return {{ status: response.status, text: text }};
-            }});
-          }})
-          .then(function(res) {{
-            var output;
-            try {{
-              output = JSON.parse(res.text);
-            }} catch(e) {{
-              result.style.color = "red";
-              result.textContent = "Server error: " + res.text.substring(0, 200);
-              return;
-            }}
-            if (res.status !== 200) {{
-              result.style.color = "red";
-              result.textContent = "Error: " + (output.detail || "Prediction failed (" + res.status + ")");
-              return;
-            }}
-            result.style.color = "#172033";
-            result.textContent =
-              "Predicted class: " + output.prediction + "\n" +
-              "Probability of No Heart Disease (0): " + (output.probability_class_0 * 100).toFixed(2) + "%\n" +
-              "Probability of Heart Disease (1): " + (output.probability_class_1 * 100).toFixed(2) + "%";
-          }})
-          .catch(function(err) {{
-            result.style.color = "red";
-            result.textContent = "Network error: " + err.message;
-          }});
-        }});
-    </script>
-    </body>
-    </html>
-    """
+    fetch('/predict', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+    .then(function(response) {
+      var status = response.status;
+      return response.text().then(function(text) {
+        return { status: status, text: text };
+      });
+    })
+    .then(function(res) {
+      var output;
+      try {
+        output = JSON.parse(res.text);
+      } catch(e) {
+        result.style.color = 'red';
+        result.textContent = 'Server error: ' + res.text.substring(0, 200);
+        return;
+      }
+      if (res.status !== 200) {
+        result.style.color = 'red';
+        result.textContent = 'Error ' + res.status + ': ' + (output.detail || 'Prediction failed');
+        return;
+      }
+      result.style.color = '#174ea6';
+      result.textContent = 'Predicted class: ' + output.prediction + '\nProbability No Heart Disease: ' + (output.probability_class_0 * 100).toFixed(2) + '%\nProbability Heart Disease: ' + (output.probability_class_1 * 100).toFixed(2) + '%';
+    })
+    .catch(function(err) {
+      result.style.color = 'red';
+      result.textContent = 'Network error: ' + err.message;
+    });
+  });
+</script>
+</body>
+</html>
+"""
+    html = html.replace('FIELDS_PLACEHOLDER', fields_html)
+    html = html.replace('FIELD_NAMES_PLACEHOLDER', field_names_js)
+    return html
 
 
 @app.get("/health")
