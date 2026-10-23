@@ -94,8 +94,15 @@ def home():
     label { font-size: 14px; font-weight: bold; display: block; }
     input { display: block; box-sizing: border-box; width: 100%; margin-top: 7px; padding: 11px; border: 1px solid #cbd5e1; border-radius: 8px; background: white; }
     button { margin-top: 22px; width: 100%; padding: 14px; border: 0; border-radius: 8px; background: #174ea6; color: white; font-size: 16px; cursor: pointer; }
-    #result { margin-top: 20px; padding: 16px; border-radius: 8px; background: #eef4ff; white-space: pre-line; display: none; }
     .note { color: #596579; font-size: 13px; }
+    /* Modal */
+    #modalOverlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 100; align-items: center; justify-content: center; }
+    #modalOverlay.show { display: flex; }
+    #modalBox { background: white; border-radius: 16px; padding: 32px 28px 24px; max-width: 420px; width: 90%; box-shadow: 0 8px 40px rgba(0,0,0,0.18); text-align: center; }
+    #modalIcon { font-size: 48px; margin-bottom: 12px; }
+    #modalTitle { font-size: 20px; font-weight: bold; margin-bottom: 12px; }
+    #modalBody { font-size: 15px; line-height: 1.7; margin-bottom: 24px; }
+    #modalClose { padding: 10px 36px; border: 0; border-radius: 8px; font-size: 15px; cursor: pointer; color: white; }
   </style>
 </head>
 <body>
@@ -106,19 +113,44 @@ def home():
     <div class="grid">FIELDS_PLACEHOLDER</div>
     <button type="submit">Run Prediction</button>
   </form>
-  <div id="result"></div>
   <p class="note">Educational ML demo only. This tool is not a medical diagnosis.</p>
 </main>
+
+<div id="modalOverlay">
+  <div id="modalBox">
+    <div id="modalIcon"></div>
+    <div id="modalTitle"></div>
+    <div id="modalBody"></div>
+    <button id="modalClose" onclick="closeModal()">Close</button>
+  </div>
+</div>
+
 <script>
   var fieldNames = FIELD_NAMES_PLACEHOLDER;
+
+  function showModal(success, title, bodyHTML) {
+    document.getElementById('modalIcon').textContent = success ? '\u2705' : '\u274C';
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalTitle').style.color = success ? '#16a34a' : '#dc2626';
+    document.getElementById('modalBody').innerHTML = bodyHTML;
+    document.getElementById('modalClose').style.background = success ? '#16a34a' : '#dc2626';
+    document.getElementById('modalOverlay').classList.add('show');
+  }
+
+  function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('show');
+  }
+
+  document.getElementById('modalOverlay').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
 
   document.getElementById('patientForm').addEventListener('submit', function(event) {
     event.preventDefault();
 
-    var result = document.getElementById('result');
-    result.style.display = 'block';
-    result.style.color = '#172033';
-    result.textContent = 'Predicting...';
+    var btn = event.target.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    btn.textContent = 'Predicting...';
 
     var data = {};
     for (var i = 0; i < fieldNames.length; i++) {
@@ -138,25 +170,29 @@ def home():
       });
     })
     .then(function(res) {
+      btn.disabled = false;
+      btn.textContent = 'Run Prediction';
       var output;
       try {
         output = JSON.parse(res.text);
       } catch(e) {
-        result.style.color = 'red';
-        result.textContent = 'Server error: ' + res.text.substring(0, 200);
+        showModal(false, 'Server Error', 'Could not parse response:<br>' + res.text.substring(0, 200));
         return;
       }
       if (res.status !== 200) {
-        result.style.color = 'red';
-        result.textContent = 'Error ' + res.status + ': ' + (output.detail || 'Prediction failed');
+        showModal(false, 'Prediction Failed', 'Error ' + res.status + ': ' + (output.detail || 'Unknown error'));
         return;
       }
-      result.style.color = '#174ea6';
-      result.textContent = 'Predicted class: ' + output.prediction + '\nProbability No Heart Disease: ' + (output.probability_class_0 * 100).toFixed(2) + '%\nProbability Heart Disease: ' + (output.probability_class_1 * 100).toFixed(2) + '%';
+      var label = output.prediction === 1 ? '\u2764\uFE0F Heart Disease Detected' : '\uD83D\uDC9A No Heart Disease Detected';
+      var body = '<strong>' + label + '</strong><br><br>'
+        + 'Probability No Heart Disease: <strong>' + (output.probability_class_0 * 100).toFixed(2) + '%</strong><br>'
+        + 'Probability Heart Disease: <strong>' + (output.probability_class_1 * 100).toFixed(2) + '%</strong>';
+      showModal(true, 'Prediction Result', body);
     })
     .catch(function(err) {
-      result.style.color = 'red';
-      result.textContent = 'Network error: ' + err.message;
+      btn.disabled = false;
+      btn.textContent = 'Run Prediction';
+      showModal(false, 'Network Error', err.message);
     });
   });
 </script>
