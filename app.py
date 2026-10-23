@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 from pydantic import BaseModel, Field
 
 app = FastAPI(title="Heart Disease Prediction Demo")
@@ -145,9 +145,9 @@ def home():
             '});'
             '</script></body></html>'
         )
-        return HTMLResponse(content=page, status_code=200)
+        return Response(content=page, media_type="text/html; charset=utf-8", status_code=200)
     except Exception as ex:
-        return HTMLResponse(content='<pre>home() error: ' + traceback.format_exc() + '</pre>', status_code=500)
+        return Response(content='<pre>home() error: ' + traceback.format_exc() + '</pre>', media_type="text/html; charset=utf-8", status_code=500)
 
 
 @app.get("/health")

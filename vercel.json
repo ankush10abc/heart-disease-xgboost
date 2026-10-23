@@ -3,10 +3,16 @@
   "builds": [
     {
       "src": "app.py",
-      "use": "@vercel/python"
+      "use": "@vercel/python",
+      "config": { "includeFiles": ["model.pkl"] }
     }
   ],
   "routes": [
+    {
+      "src": "/",
+      "dest": "app.py",
+      "headers": { "Content-Type": "text/html; charset=utf-8" }
+    },
     {
       "src": "/(.*)",
       "dest": "app.py"
