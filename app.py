@@ -1,9 +1,9 @@
-
 import pickle
+import os
 from pathlib import Path
 
 import pandas as pd
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
@@ -11,11 +11,21 @@ app = FastAPI(title="Heart Disease Prediction Demo")
 
 MODEL_PATH = Path(__file__).parent / "model.pkl"
 
-with open(MODEL_PATH, "rb") as file:
-    bundle = pickle.load(file)
+# Load model safely at startup
+model = None
+FEATURES = None
 
-model = bundle["model"]
-FEATURES = bundle["features"]
+def load_model():
+    global model, FEATURES
+    try:
+        with open(MODEL_PATH, "rb") as f:
+            bundle = pickle.load(f)
+        model = bundle["model"]
+        FEATURES = bundle["features"]
+    except Exception as e:
+        print(f"Model load error: {e}")
+
+load_model()
 
 
 class PatientData(BaseModel):
@@ -196,22 +206,25 @@ def home():
     """
 
 
+@app.get("/health")
+def health():
+    return {"status": "ok", "model_loaded": model is not None}
+
+
 @app.post("/predict")
 def predict(patient: PatientData):
-    values = patient.model_dump()
+    if model is None:
+        raise HTTPException(status_code=503, detail="Model not loaded")
 
-    # Keep exactly the feature order used during training.
+    values = patient.model_dump()
     input_df = pd.DataFrame([values], columns=FEATURES)
 
     prediction = int(model.predict(input_df)[0])
     probabilities = model.predict_proba(input_df)[0]
     classes = list(model.classes_)
 
-    probability_0 = float(probabilities[classes.index(0)])
-    probability_1 = float(probabilities[classes.index(1)])
-
     return {
         "prediction": prediction,
-        "probability_class_0": probability_0,
-        "probability_class_1": probability_1
+        "probability_class_0": float(probabilities[classes.index(0)]),
+        "probability_class_1": float(probabilities[classes.index(1)])
     }
