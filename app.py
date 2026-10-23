@@ -79,7 +79,7 @@ def home():
         field_names_js = json.dumps([f[0] for f in FIELD_DEFS])
         fields_html = "".join(
             '<label>' + name
-            + '<input name="' + name + '" type="number"'
+            + '<input id="field_' + name + '" name="' + name + '" type="number"'
             + ' min="' + str(mn) + '" max="' + str(mx)
             + '" step="' + step + '" value="' + str(val) + '" required></label>'
             for name, mn, mx, val, step in FIELD_DEFS
@@ -107,7 +107,7 @@ def home():
             '</style></head><body><main>'
             '<h1>Heart Health Prediction</h1>'
             '<p>Enter the coded features used by the training dataset.</p>'
-            '<form id="pf"><div class="grid">' + fields_html + '</div>'
+            '<form id="pf" onsubmit="return false"><div class="grid">' + fields_html + '</div>'
             '<button type="submit">Run Prediction</button></form>'
             '<p class="note">Educational ML demo only. Not a medical diagnosis.</p>'
             '</main>'
@@ -131,7 +131,10 @@ def home():
             '  var btn=e.target.querySelector("button[type=submit]");'
             '  btn.disabled=true;btn.textContent="Predicting...";'
             '  var d={};'
-            '  for(var i=0;i<fn.length;i++){d[fn[i]]=Number(document.querySelector("[name=\""+fn[i]+"\"]").value);}'
+            '  for(var i=0;i<fn.length;i++){'
+            '    var inp=document.getElementById("field_"+fn[i]);'
+            '    d[fn[i]]=inp?Number(inp.value):0;'
+            '  }'
             '  fetch("/predict",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(d)})'
             '  .then(function(r){var s=r.status;return r.text().then(function(t){return{s:s,t:t};})})'
             '  .then(function(r){'
