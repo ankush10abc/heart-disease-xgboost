@@ -145,7 +145,7 @@ def home():
             '});'
             '</script></body></html>'
         )
-        return page
+        return HTMLResponse(content=page, status_code=200)
     except Exception as ex:
         return HTMLResponse(content='<pre>home() error: ' + traceback.format_exc() + '</pre>', status_code=500)
 
