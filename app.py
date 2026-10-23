@@ -9,15 +9,17 @@ from pydantic import BaseModel, Field
 
 app = FastAPI(title="Heart Disease Prediction Demo")
 
-MODEL_PATH = Path(__file__).parent / "model.pkl"
-
-# Load model safely at startup
 model = None
 FEATURES = None
 
 def load_model():
     global model, FEATURES
-    for path in [MODEL_PATH, Path("model.pkl"), Path("/var/task/model.pkl")]:
+    candidates = [
+        Path(__file__).resolve().parent / "model.pkl",  # same dir as app.py
+        Path(os.getcwd()) / "model.pkl",                # working directory
+        Path("/var/task/model.pkl"),                    # Vercel Lambda root
+    ]
+    for path in candidates:
         try:
             with open(path, "rb") as f:
                 bundle = pickle.load(f)
@@ -26,8 +28,8 @@ def load_model():
             print(f"Model loaded from: {path}")
             return
         except Exception as e:
-            print(f"Failed to load from {path}: {e}")
-    print("ERROR: model.pkl not found in any path")
+            print(f"Failed {path}: {e}")
+    print("ERROR: model.pkl not found")
 
 load_model()
 
@@ -200,6 +202,24 @@ def home():
 @app.get("/health")
 def health():
     return {"status": "ok", "model_loaded": model is not None}
+
+
+@app.get("/debug")
+def debug():
+    import sys
+    cwd = os.getcwd()
+    file_dir = str(Path(__file__).resolve().parent)
+    files_cwd = os.listdir(cwd)
+    files_dir = os.listdir(file_dir) if file_dir != cwd else "(same as cwd)"
+    return {
+        "cwd": cwd,
+        "file_dir": file_dir,
+        "files_in_cwd": files_cwd,
+        "files_in_file_dir": files_dir,
+        "model_loaded": model is not None,
+        "features": FEATURES,
+        "python": sys.version,
+    }
 
 
 @app.post("/predict")
