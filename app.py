@@ -50,38 +50,63 @@ class PatientData(BaseModel):
     Income: int = Field(ge=1, le=8)
 
 
+FIELD_DEFS = [
+    ("HighBP",            0,  1,  1,   "1"),
+    ("HighChol",          0,  1,  1,   "1"),
+    ("CholCheck",         0,  1,  1,   "1"),
+    ("BMI",               10, 70, 30,  "0.1"),
+    ("Smoker",            0,  1,  0,   "1"),
+    ("Stroke",            0,  1,  0,   "1"),
+    ("Diabetes",          0,  2,  0,   "1"),
+    ("PhysActivity",      0,  1,  1,   "1"),
+    ("HvyAlcoholConsump", 0,  1,  0,   "1"),
+    ("MentHlth",          0,  30, 0,   "1"),
+    ("PhysHlth",          0,  30, 0,   "1"),
+    ("Sex",               0,  1,  0,   "1"),
+    ("Age",               1,  13, 7,   "1"),
+    ("Education",         1,  6,  4,   "1"),
+    ("Income",            1,  8,  5,   "1"),
+]
+
+
 @app.get("/", response_class=HTMLResponse)
 def home():
-    return """
+    field_names_js = str([f[0] for f in FIELD_DEFS])
+    fields_html = "".join(
+        f'<label>{name}<input name="{name}" type="number" '
+        f'min="{mn}" max="{mx}" step="{step}" value="{val}" required></label>'
+        for name, mn, mx, val, step in FIELD_DEFS
+    )
+    return f"""
     <!DOCTYPE html>
     <html>
     <head>
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <title>Heart Health ML Demo</title>
       <style>
-        body {
+        body {{
           font-family: Arial, sans-serif;
           background: #f3f6fb;
           margin: 0;
           padding: 24px;
           color: #172033;
-        }
-        main {
+        }}
+        main {{
           max-width: 850px;
           margin: auto;
           background: white;
           padding: 28px;
           border-radius: 16px;
           box-shadow: 0 5px 24px #17203312;
-        }
-        h1 { color: #174ea6; }
-        .grid {
+        }}
+        h1 {{ color: #174ea6; }}
+        .grid {{
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
           gap: 16px;
-        }
-        label { font-size: 14px; font-weight: bold; }
-        input, select {
+        }}
+        label {{ font-size: 14px; font-weight: bold; display: block; }}
+        input {{
           display: block;
           box-sizing: border-box;
           width: 100%;
@@ -90,8 +115,8 @@ def home():
           border: 1px solid #cbd5e1;
           border-radius: 8px;
           background: white;
-        }
-        button {
+        }}
+        button {{
           margin-top: 22px;
           width: 100%;
           padding: 14px;
@@ -101,15 +126,15 @@ def home():
           color: white;
           font-size: 16px;
           cursor: pointer;
-        }
-        #result {
+        }}
+        #result {{
           margin-top: 20px;
           padding: 16px;
           border-radius: 8px;
           background: #eef4ff;
           white-space: pre-line;
-        }
-        .note { color: #596579; font-size: 13px; }
+        }}
+        .note {{ color: #596579; font-size: 13px; }}
       </style>
     </head>
     <body>
@@ -118,87 +143,43 @@ def home():
       <p>Enter the coded features used by the training dataset.</p>
 
       <form id="patientForm">
-        <div class="grid" id="fields"></div>
+        <div class="grid">{fields_html}</div>
         <button type="submit">Run Prediction</button>
       </form>
 
       <div id="result" hidden></div>
-      <p class="note">
-        Educational ML demo only. This tool is not a medical diagnosis.
-      </p>
+      <p class="note">Educational ML demo only. This tool is not a medical diagnosis.</p>
     </main>
 
     <script>
-      const fields = [
-        ["HighBP", 0, 1, 1],
-        ["HighChol", 0, 1, 1],
-        ["CholCheck", 0, 1, 1],
-        ["BMI", 10, 70, 30],
-        ["Smoker", 0, 1, 0],
-        ["Stroke", 0, 1, 0],
-        ["Diabetes", 0, 2, 0],
-        ["PhysActivity", 0, 1, 1],
-        ["HvyAlcoholConsump", 0, 1, 0],
-        ["MentHlth", 0, 30, 0],
-        ["PhysHlth", 0, 30, 0],
-        ["Sex", 0, 1, 0],
-        ["Age", 1, 13, 7],
-        ["Education", 1, 6, 4],
-        ["Income", 1, 8, 5]
-      ];
-
-      const container = document.getElementById("fields");
-
-      for (const [name, min, max, initial] of fields) {
-        const label = document.createElement("label");
-        label.textContent = name;
-
-        const input = document.createElement("input");
-        input.name = name;
-        input.type = "number";
-        input.min = min;
-        input.max = max;
-        input.step = name === "BMI" ? "0.1" : "1";
-        input.value = initial;
-        input.required = true;
-
-        label.appendChild(input);
-        container.appendChild(label);
-      }
+      const fieldNames = {field_names_js};
 
       document.getElementById("patientForm")
-        .addEventListener("submit", async (event) => {
+        .addEventListener("submit", async (event) => {{
           event.preventDefault();
 
           const result = document.getElementById("result");
           result.hidden = false;
           result.textContent = "Predicting...";
 
-          const data = {};
-          for (const [name] of fields) {
-            data[name] = Number(
-              document.querySelector(`[name="${name}"]`).value
-            );
-          }
+          const data = {{}};
+          for (const name of fieldNames) {{
+            data[name] = Number(document.querySelector(`[name="${{name}}"]`).value);
+          }}
 
-          try {
-            const response = await fetch("/predict", {
+          try {{
+            const response = await fetch("/predict", {{
               method: "POST",
-              headers: {"Content-Type": "application/json"},
+              headers: {{"Content-Type": "application/json"}},
               body: JSON.stringify(data)
-            });
+            }});
 
             const text = await response.text();
             let output;
-            try {
-              output = JSON.parse(text);
-            } catch {
-              throw new Error("Server error: " + text.substring(0, 120));
-            }
+            try {{ output = JSON.parse(text); }}
+            catch {{ throw new Error("Server error: " + text.substring(0, 120)); }}
 
-            if (!response.ok) {
-              throw new Error(output.detail || "Prediction failed");
-            }
+            if (!response.ok) throw new Error(output.detail || "Prediction failed");
 
             result.textContent =
               "Predicted class: " + output.prediction +
@@ -206,10 +187,10 @@ def home():
               (output.probability_class_0 * 100).toFixed(2) + "%" +
               "\nEstimated probability of class 1: " +
               (output.probability_class_1 * 100).toFixed(2) + "%";
-          } catch (error) {
+          }} catch (error) {{
             result.textContent = "Error: " + error.message;
-          }
-        });
+          }}
+        }});
     </script>
     </body>
     </html>
