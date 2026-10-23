@@ -17,13 +17,17 @@ FEATURES = None
 
 def load_model():
     global model, FEATURES
-    try:
-        with open(MODEL_PATH, "rb") as f:
-            bundle = pickle.load(f)
-        model = bundle["model"]
-        FEATURES = bundle["features"]
-    except Exception as e:
-        print(f"Model load error: {e}")
+    for path in [MODEL_PATH, Path("model.pkl"), Path("/var/task/model.pkl")]:
+        try:
+            with open(path, "rb") as f:
+                bundle = pickle.load(f)
+            model = bundle["model"]
+            FEATURES = bundle["features"]
+            print(f"Model loaded from: {path}")
+            return
+        except Exception as e:
+            print(f"Failed to load from {path}: {e}")
+    print("ERROR: model.pkl not found in any path")
 
 load_model()
 
@@ -184,7 +188,13 @@ def home():
               body: JSON.stringify(data)
             });
 
-            const output = await response.json();
+            const text = await response.text();
+            let output;
+            try {
+              output = JSON.parse(text);
+            } catch {
+              throw new Error("Server error: " + text.substring(0, 120));
+            }
 
             if (!response.ok) {
               throw new Error(output.detail || "Prediction failed");
@@ -192,9 +202,9 @@ def home():
 
             result.textContent =
               "Predicted class: " + output.prediction +
-              "\\nEstimated probability of class 0: " +
+              "\nEstimated probability of class 0: " +
               (output.probability_class_0 * 100).toFixed(2) + "%" +
-              "\\nEstimated probability of class 1: " +
+              "\nEstimated probability of class 1: " +
               (output.probability_class_1 * 100).toFixed(2) + "%";
           } catch (error) {
             result.textContent = "Error: " + error.message;
