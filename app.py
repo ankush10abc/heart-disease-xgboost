@@ -157,41 +157,54 @@ def home():
       const fieldNames = {field_names_js};
 
       document.getElementById("patientForm")
-        .addEventListener("submit", async (event) => {{
+        .addEventListener("submit", function(event) {{
           event.preventDefault();
 
           const result = document.getElementById("result");
-          result.hidden = false;
+          result.removeAttribute("hidden");
+          result.style.color = "#172033";
           result.textContent = "Predicting...";
 
           const data = {{}};
-          for (const name of fieldNames) {{
-            data[name] = Number(document.querySelector(`[name="${{name}}"]`).value);
+          for (let i = 0; i < fieldNames.length; i++) {{
+            const name = fieldNames[i];
+            data[name] = Number(document.querySelector('[name="' + name + '"]').value);
           }}
 
-          try {{
-            const response = await fetch("/predict", {{
-              method: "POST",
-              headers: {{"Content-Type": "application/json"}},
-              body: JSON.stringify(data)
+          fetch("/predict", {{
+            method: "POST",
+            headers: {{"Content-Type": "application/json"}},
+            body: JSON.stringify(data)
+          }})
+          .then(function(response) {{
+            return response.text().then(function(text) {{
+              return {{ status: response.status, text: text }};
             }});
-
-            const text = await response.text();
-            let output;
-            try {{ output = JSON.parse(text); }}
-            catch {{ throw new Error("Server error: " + text.substring(0, 120)); }}
-
-            if (!response.ok) throw new Error(output.detail || "Prediction failed");
-
+          }})
+          .then(function(res) {{
+            var output;
+            try {{
+              output = JSON.parse(res.text);
+            }} catch(e) {{
+              result.style.color = "red";
+              result.textContent = "Server error: " + res.text.substring(0, 200);
+              return;
+            }}
+            if (res.status !== 200) {{
+              result.style.color = "red";
+              result.textContent = "Error: " + (output.detail || "Prediction failed (" + res.status + ")");
+              return;
+            }}
+            result.style.color = "#172033";
             result.textContent =
-              "Predicted class: " + output.prediction +
-              "\nEstimated probability of class 0: " +
-              (output.probability_class_0 * 100).toFixed(2) + "%" +
-              "\nEstimated probability of class 1: " +
-              (output.probability_class_1 * 100).toFixed(2) + "%";
-          }} catch (error) {{
-            result.textContent = "Error: " + error.message;
-          }}
+              "Predicted class: " + output.prediction + "\n" +
+              "Probability of No Heart Disease (0): " + (output.probability_class_0 * 100).toFixed(2) + "%\n" +
+              "Probability of Heart Disease (1): " + (output.probability_class_1 * 100).toFixed(2) + "%";
+          }})
+          .catch(function(err) {{
+            result.style.color = "red";
+            result.textContent = "Network error: " + err.message;
+          }});
         }});
     </script>
     </body>
