@@ -74,7 +74,6 @@ FIELD_DEFS = [
 @app.get("/", response_class=HTMLResponse)
 def home():
     import json
-    import traceback
     try:
         field_names_js = json.dumps([f[0] for f in FIELD_DEFS])
         fields_html = "".join(
@@ -150,7 +149,26 @@ def home():
         )
         return Response(content=page, media_type="text/html; charset=utf-8", status_code=200)
     except Exception as ex:
-        return Response(content='<pre>home() error: ' + traceback.format_exc() + '</pre>', media_type="text/html; charset=utf-8", status_code=500)
+        import traceback
+        err = traceback.format_exc()
+        err_page = (
+            '<!DOCTYPE html><html><head>'
+            '<meta name="viewport" content="width=device-width,initial-scale=1">'
+            '<title>App Error</title>'
+            '<style>'
+            'body{font-family:Arial,sans-serif;background:#fff1f2;margin:0;padding:32px;color:#172033}'
+            'main{max-width:800px;margin:auto;background:white;padding:28px;border-radius:16px;box-shadow:0 5px 24px rgba(0,0,0,0.1);border-top:6px solid #dc2626}'
+            'h1{color:#dc2626;margin-top:0}'
+            'pre{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:16px;font-size:13px;overflow-x:auto;white-space:pre-wrap;word-break:break-word;color:#7f1d1d}'
+            'p{color:#596579;font-size:14px}'
+            '</style></head><body><main>'
+            '<h1>Server Error (500)</h1>'
+            '<p>An exception occurred while rendering the page. Full traceback:</p>'
+            '<pre>' + err.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;') + '</pre>'
+            '<p>Please share this error to get it fixed.</p>'
+            '</main></body></html>'
+        )
+        return Response(content=err_page, media_type='text/html; charset=utf-8', status_code=500)
 
 
 @app.get("/health")
